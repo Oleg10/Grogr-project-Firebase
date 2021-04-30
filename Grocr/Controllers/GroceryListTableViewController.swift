@@ -38,6 +38,7 @@ class GroceryListTableViewController: UITableViewController {
   var items: [GroceryItem] = []
   var user: User!
   var userCountBarButtonItem: UIBarButtonItem!
+  let ref = Database.database().reference(withPath: "grocery-items")
   
   
   override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -59,6 +60,9 @@ class GroceryListTableViewController: UITableViewController {
     navigationItem.leftBarButtonItem = userCountBarButtonItem
     
     user = User(uid: "FakeId", email: "hungry@person.food")
+    ref.observe(.value, with: { snapshot in
+        print(snapshot.value as Any)
+    })
   }
   
   // MARK: UITableView Delegate methods
@@ -83,7 +87,7 @@ class GroceryListTableViewController: UITableViewController {
     return true
   }
   
-  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+  override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
     if editingStyle == .delete {
       items.remove(at: indexPath.row)
       tableView.reloadData()
@@ -120,11 +124,18 @@ class GroceryListTableViewController: UITableViewController {
                                   preferredStyle: .alert)
     
     let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
-      let textField = alert.textFields![0]
-      
-      let groceryItem = GroceryItem(name: textField.text!,
+        guard let textField = alert.textFields?.first,
+        let text = textField.text else { return }
+
+        //2
+        let groceryItem = GroceryItem(name: text,
                                     addedByUser: self.user.email,
                                     completed: false)
+        //3
+        let groceryItemRef = self.ref.child(text.lowercased())
+        //4
+        groceryItemRef.setValue(groceryItem.toAnyObject())
+                            
       
       self.items.append(groceryItem)
       self.tableView.reloadData()
