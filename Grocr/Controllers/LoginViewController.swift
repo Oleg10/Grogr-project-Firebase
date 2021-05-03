@@ -54,6 +54,20 @@ class LoginViewController: UIViewController {
     
     let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
     }
+    //1
+    let emailFild = alert.textFields![0]
+    let passwordField = alert.textFields![0]
+    //2
+    Auth.auth().createUser(withEmail: emailFild.text!, password: passwordField.text!) {
+        user, error in
+        if error == nil {
+    //3
+            Auth.auth().signIn(withEmail: self.textFieldLoginEmail.text!,
+                               password: self.textFieldLoginPassword.text!)
+        }
+    }
+    
+    
     
     let cancelAction = UIAlertAction(title: "Cancel",
                                      style: .cancel)

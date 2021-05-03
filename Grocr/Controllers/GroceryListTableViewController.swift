@@ -59,8 +59,36 @@ class GroceryListTableViewController: UITableViewController {
     userCountBarButtonItem.tintColor = UIColor.white
     navigationItem.leftBarButtonItem = userCountBarButtonItem
     
+    ref.queryOrdered(byChild: "completed").observe(.value, with: {
+        snapshot in
+        var newItems: [GroceryItem] = []
+        for child in snapshot.children {
+            if let snapshot = child as? DataSnapshot,
+               let groceryItem = GroceryItem(snapshot: snapshot) {
+            newItems.append(groceryItem)
+            }
+        }
+        self.items = newItems
+        self.tableView.reloadData()
+    })
+    
     user = User(uid: "FakeId", email: "hungry@person.food")
+  //  Synchronizing Data to the Table View
+//1 Attach a listener to receive updates whenever the grocery-items endpoint is modified.
     ref.observe(.value, with: { snapshot in
+   //2 Store the latest version of the data in a local variable inside the listener’s closure.
+        var newItems: [ GroceryItem ] = []
+    //3
+        for child in snapshot.children {
+    //4
+            if let snapshot = child as? DataSnapshot,
+               let groceryItem = GroceryItem(snapshot: snapshot) {
+                newItems.append(groceryItem)
+            }
+        }
+     //5
+        self.items = newItems
+        self.tableView.reloadData()
         print(snapshot.value as Any)
     })
   }
@@ -89,18 +117,32 @@ class GroceryListTableViewController: UITableViewController {
   
   override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
     if editingStyle == .delete {
-      items.remove(at: indexPath.row)
+        let groceryItem = items[indexPath.row]
+        groceryItem.ref?.removeValue()
+        
+        //    items.remove(at: indexPath.row)
       tableView.reloadData()
     }
   }
   
   override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+  //1 Find the cell the user tapped using cellForRow(at:)
     guard let cell = tableView.cellForRow(at: indexPath) else { return }
-    var groceryItem = items[indexPath.row]
+ 
+    //2 Get the corresponding GroceryItem by using the index path’s row.
+    let groceryItem = items[indexPath.row]
+ 
+    //3 Negate completed on the grocery item to toggle the status.
     let toggledCompletion = !groceryItem.completed
-    
+  
+    //4 Call toggleCellCheckbox(_:isCompleted:) to update the visual properties of the cell.
     toggleCellCheckbox(cell, isCompleted: toggledCompletion)
-    groceryItem.completed = toggledCompletion
+ 
+    //5 Use updateChildValues(_:), passing a dictionary, to update Firebase. This method is different than setValue(_:) because it only applies updates, whereas setValue(_:) is destructive and replaces the entire value at that reference.
+   
+    groceryItem.ref?.updateChildValues([
+        "completed": toggledCompletion
+    ])
     tableView.reloadData()
   }
   
